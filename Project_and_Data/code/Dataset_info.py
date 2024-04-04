@@ -4,7 +4,7 @@ Man kann hier sehen was bereits gemacht wurde und vor allem auch wie es gemacht 
 Das Dataset ist im selben Ordner wie diese File.
 
 Environment:
-python == 3.11
+python == 3.11.8
 matplotlib=3.8.3
 numpy=1.26.0
 pandas=2.1.1
@@ -20,6 +20,38 @@ import scipy.stats as sts
 
 
 data = pd.read_csv("../data/OWID-covid-data-28Feb2023.csv")
-#print(data.info())
-#print(data.describe())
-#print(data.head())
+
+#Getting an overview:
+# print(data.info())
+# print(data.describe())
+# print(data.head())
+
+#Number of locations and what locations:
+locations = data["location"].unique()  # -> not all are really countries (e.g. asia, africa etc.)
+# print(countries)
+n_locations = data["location"].nunique()
+# print(n_locations)
+
+#Doing the same for continents:
+continents = data["continent"].unique() # -> one of the entries is nan? -> find out
+# print(continents)
+n_continents = data["continent"].nunique()
+# print(n_continents)
+
+#Locations per continent: (also to find all locations in nan)
+loc_in_con = data.groupby("continent")["location"].apply(list)
+# print(loc_in_con)  # -> now there is no more nan?
+
+#Trying to find out what continent had how many cases total:
+cases_per_con = data.groupby("continent")["total_cases"].sum().reset_index()
+plt.figure(figsize=(12,8))
+fig1= sns.barplot(data=cases_per_con, x="continent", y="total_cases")
+plt.title("total cases per continent")
+plt.savefig("../output/tot_cases_per_cont.png")
+
+cases_per_con = data.groupby("continent")["total_cases_per_million"].sum().reset_index()
+plt.figure(figsize=(12,8))
+fig2= sns.barplot(data=cases_per_con, x="continent", y="total_cases_per_million")
+plt.title("total cases per continent per million")
+plt.savefig("../output/tot_cases_per_cont_per_million.png")
+
