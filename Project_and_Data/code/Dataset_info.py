@@ -88,7 +88,7 @@ int_data = data.select_dtypes(include=("int64")).columns
 float_data = data.select_dtypes(include=("float64")).columns
 # print("FLOATS: ", float_data)
 object_data = data.select_dtypes(include=("object")).columns
-print("OBJECTS:", object_data)
+# print("OBJECTS:", object_data)
 
 #Converting Date to a datetime variable
 data["date"] = pd.to_datetime(data["date"])
@@ -162,14 +162,14 @@ daily_cases = data.groupby('date')['new_cases'].sum()
 data_march= data[(data['date']>'2022-03-01')&(data['date']<'2022-04-01')]
 daily_cases_march = data_march.groupby('date')['new_cases'].sum()
 daily_cases_weekly= data.groupby(pd.Grouper(key='date', freq='W')).sum()['new_cases']
-print(daily_cases_weekly)
+# print(daily_cases_weekly)
 
 missing_values_count = data.isnull().sum().sort_values(ascending=False)
-print(missing_values_count.head(20))
+# print(missing_values_count.head(20))
 # no missing values in date, location, and iso code
 # most in mortality and icu metrics
 
-print(daily_cases)
+# print(daily_cases)
 
 # Plotting the new cases per day
 fig, (ax1,ax2,ax3, ax4)=plt.subplots(4,1,figsize=(10,20))
