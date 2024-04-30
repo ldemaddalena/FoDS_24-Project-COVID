@@ -26,11 +26,13 @@ data = pd.read_csv("../data/OWID-covid-data-28Feb2023.csv")
 
 
 
-"""GETTING AN OVERVIEW:"""
+"""1. GETTING AN OVERVIEW:"""
+
 
 # print(data.info())
 # print(data.describe())
 # print(data.head())
+
 
 #Total number of data entries
 # print("Number of observations:", data.shape[0])
@@ -40,44 +42,21 @@ data = pd.read_csv("../data/OWID-covid-data-28Feb2023.csv")
 # Testing and vaccination data: Including total tests conducted and vaccination rates.
 # Miscellaneous metrics: Such as reproduction rates, population statistics, and excess mortality.
 
+
 #Number of locations and what locations:
 locations = data["location"].unique()  # -> not all are really countries (e.g. asia, africa etc.)
 # print(countries)
 n_locations = data["location"].nunique()
 # print(n_locations)
-
 #Doing the same for continents:
 continents = data["continent"].unique() # -> one of the entries is nan? -> find out
 # print(continents)
 n_continents = data["continent"].nunique()
 # print(n_continents)
-
 #Locations per continent: (also to find all locations in nan)
 loc_in_con = data.groupby("continent")["location"].apply(list)
 # print(loc_in_con)  # -> now there is no more nan? there is no location saved under "the continent" nan?
 
-#Missing values:
-missing_values_per_variable = data.isnull().sum()
-# print(missing_values_per_variable)
-variables_with_no_missing_values = missing_values_per_variable[missing_values_per_variable == 0].index.tolist()
-# print(variables_with_no_missing_values)
-# print(missing_values_per_variable.sort_values(ascending=False))
-print(f'first entry: {data.date.min()}, last entry: {data.date.max()}')
-# Observations from 01.01.2020 (before pandemic) to 27.02.2023
-# -> span of over 3 years
-
-print(data['iso_code'].nunique())
-# observations from 248 regions coded in ISO 3166-1 alpha-3 format
-# but also specially defined regions defined by OurWorldInData:
-owid_codes= data[data['iso_code'].str.startswith('OWID')]['iso_code'].unique()
-print(owid_codes)
-
-missing_values_count = data.isnull().sum().sort_values(ascending=False)
-print(missing_values_count.head(20))
-# no missing values in date, location, and iso code
-# most in mortality and icu metrics
-
-"""DATA PREPROCESSING:"""
 
 #Datatypes of each variable:
 # print(data.dtypes)
@@ -89,15 +68,48 @@ float_data = data.select_dtypes(include=("float64")).columns
 # print("FLOATS: ", float_data)
 object_data = data.select_dtypes(include=("object")).columns
 # print("OBJECTS:", object_data)
+num_data = data[float_data] 
+
+"""2. DATA PREPROCESSING:"""
+
+"""@FLORIN: hier schauen, was man auch noch rausnehmen könnte, teilweise wurden Dinge doppelt gemacht."""
+
+"""2.1: MISSING VALUES:"""
+
+missing_values_per_variable = data.isnull().sum()
+# print(missing_values_per_variable)
+variables_with_no_missing_values = missing_values_per_variable[missing_values_per_variable == 0].index.tolist()
+# print(variables_with_no_missing_values)
+# print(missing_values_per_variable.sort_values(ascending=False))
+# print(f'first entry: {data.date.min()}, last entry: {data.date.max()}')
+# Observations from 01.01.2020 (before pandemic) to 27.02.2023
+# -> span of over 3 years
+
+
+# print(data['iso_code'].nunique())
+# observations from 248 regions coded in ISO 3166-1 alpha-3 format
+# but also specially defined regions defined by OurWorldInData:
+owid_codes= data[data['iso_code'].str.startswith('OWID')]['iso_code'].unique()
+# print(owid_codes)
+
+
+missing_values_count = data.isnull().sum().sort_values(ascending=False)
+# print(missing_values_count.head(20))
+# no missing values in date, location, and iso code
+# most in mortality and icu metrics
+
+
+"""2.2: Adjusting datatypes:"""
 
 #Converting Date to a datetime variable
 data["date"] = pd.to_datetime(data["date"])
 # print(data.dtypes)
-
 # Date is saved as object
 #->convert to daytime format
 data['date']=pd.to_datetime(data['date'])
 
+
+"""2.3: Data cleaning"""
 
 #OWID EXPLANATION
 ####################################################################################################################
@@ -112,9 +124,74 @@ iso_codes_OWID = list(grouped_OWID_iso.groups.keys()) #trying to find out what O
 grouped_OWID_loc = data_OWID.groupby("location")
 loc_OWID = list(grouped_OWID_loc.groups.keys()) #OWID contains special summaries of data such as: Low income, European union as a whole etc.
 # print(loc_OWID)
+#percentage of OWID data:
+# print((data_OWID.shape[0]/(data_no_OWID.shape[0]+ data_OWID.shape[0]))*100, "%")
 #I think all this OWID should be interpreted seperately from the rest of the data --> ASK TA
 #####################################################################################################################
 #USE DATA WITH RESPECT TO OWID AND NON OWID!!
+
+
+#Looking for duplicate rows:
+duplicate_rows = data[data.duplicated()]
+if not duplicate_rows.empty:
+    print("Duplicate Rows:")
+    print(duplicate_rows)
+else:
+    print("No duplicate rows found.")
+
+
+#Looking for outliers, will be more useful after handling missing data:
+"""
+summary_stats = data.describe()
+Q1 = summary_stats.loc['25%']
+Q3 = summary_stats.loc['75%']
+IQR = Q3 - Q1
+# Define outliers using IQR rule
+lower_bound = Q1 - 1.5 * IQR
+upper_bound = Q3 + 1.5 * IQR
+# Align DataFrame columns with summary statistics columns
+data, lower_bound = data.align(lower_bound, axis=1, join='inner')
+data, upper_bound = data.align(upper_bound, axis=1, join='inner')
+outliers = data[(data < lower_bound) | (data > upper_bound)].dropna(axis=1, how='all')
+if not outliers.empty:
+    print("Outliers:")
+    print(outliers)
+else:
+    print("No outliers found.")
+"""
+#Remove comments above later to find outliers
+
+
+"""2.4: Feature scaling (Standardization or normalization)"""
+
+
+#Testing whether the data is normally distributed or not:
+#ONLY NUMERICAL DATA
+#Using the anderson darling test, since the shapiro wilks is not good for data n > 5000 
+distribution_results = {}
+for column in num_data.columns:
+    result = sts.anderson(num_data[column], dist='norm')
+    test_stat = result.statistic 
+    critical_val = result.critical_values
+    #print(critical_val)                                
+    #print(test_stat)                           ########SOMETHING DOESNT WORK HERE YET!!!!!!!!!!!!!!!!!!!
+    if test_stat > critical_val[2]:
+        result = "not normal"
+    else:
+        result = "normal"    
+    distribution_results[column] = result
+# print(distribution_results)
+
+not_normal = []
+for key, value in distribution_results.items():
+    if value == "not normal":
+        not_normal.append(key)
+if len(not_normal) == 0:
+    print("All numerical data seems to be normally distributed.")
+else:
+    print("All data but", not_normal, "seems to be normally distributed")
+
+"""3: SPECIAL DATA FRAME (USEFUL FORMAT) CREATION:"""
 
 
 #Creating a dataframe containing all entries grouped by isocode -> to have data over whole time period:
@@ -128,10 +205,12 @@ data_all_time_per_iso = data_no_OWID.groupby("iso_code").agg({col: ['min', 'max'
                                                                     and 'smoothed' not in col.lower()
                                                                     and 'excess' not in col.lower()})
 # print(data_all_time_per_iso.columns)
+#
 # print(data_all_time_per_iso)
 #data_all_time_per_iso is a helpful dataframe containing averaged and total data per country, go and print the two lines above for more information
 
-"""VISUALIZATIONS:""" 
+
+"""4. VISUALIZATIONS:""" 
 
 #Trying to find out what country had the most cases and cases per million:
 
@@ -163,12 +242,6 @@ data_march= data[(data['date']>'2022-03-01')&(data['date']<'2022-04-01')]
 daily_cases_march = data_march.groupby('date')['new_cases'].sum()
 daily_cases_weekly= data.groupby(pd.Grouper(key='date', freq='W')).sum()['new_cases']
 # print(daily_cases_weekly)
-
-missing_values_count = data.isnull().sum().sort_values(ascending=False)
-# print(missing_values_count.head(20))
-# no missing values in date, location, and iso code
-# most in mortality and icu metrics
-
 # print(daily_cases)
 
 # Plotting the new cases per day
