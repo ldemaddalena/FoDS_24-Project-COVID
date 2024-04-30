@@ -14,6 +14,7 @@ numpy=1.26.0
 pandas=2.1.1
 scipy=1.12.0
 seaborn=0.13.2
+sklearn=1.4.2
 """
 
 import pandas as pd
@@ -21,6 +22,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as sts
+from sklearn.preprocessing import RobustScaler
+from sklearn.model_selection import StratifiedKFold
+from scipy.stats import boxcox
 
 data = pd.read_csv("../data/OWID-covid-data-28Feb2023.csv")
 
@@ -69,6 +73,8 @@ float_data = data.select_dtypes(include=("float64")).columns
 object_data = data.select_dtypes(include=("object")).columns
 # print("OBJECTS:", object_data)
 num_data = data[float_data] 
+
+
 
 """2. DATA PREPROCESSING:"""
 
@@ -169,18 +175,19 @@ else:
 #ONLY NUMERICAL DATA
 #Using the anderson darling test, since the shapiro wilks is not good for data n > 5000 
 distribution_results = {}
+
 for column in num_data.columns:
-    result = sts.anderson(num_data[column], dist='norm')
+    result = sts.anderson(num_data[column].dropna(), dist='norm')  ############################### I had to drop all na for it to work!!! -> maybe imputation needed
     test_stat = result.statistic 
     critical_val = result.critical_values
     #print(critical_val)                                
-    #print(test_stat)                           ########SOMETHING DOESNT WORK HERE YET!!!!!!!!!!!!!!!!!!!
+    #print(test_stat)                           
     if test_stat > critical_val[2]:
         result = "not normal"
     else:
         result = "normal"    
     distribution_results[column] = result
-# print(distribution_results)
+
 
 not_normal = []
 for key, value in distribution_results.items():
@@ -188,8 +195,37 @@ for key, value in distribution_results.items():
         not_normal.append(key)
 if len(not_normal) == 0:
     print("All numerical data seems to be normally distributed.")
+elif len(not_normal) == len(num_data.columns):
+    print("No variable is normally distributed.")
 else:
     print("All data but", not_normal, "seems to be normally distributed")
+
+
+# NOT A SINGLE VARIABLE IS NORMALLY DISTRIBUTED, SEE ALSO VISUALLY BELOW
+"""
+columns_per_row = 3
+num_columns = len(num_data.columns)
+num_rows = (num_columns - 1) // columns_per_row + 1
+fig_width = 6 * columns_per_row
+fig_height = 4 * num_rows
+fig, axs = plt.subplots(num_rows, 4, figsize=(fig_width, fig_height))
+axs = axs.flatten()
+for i, column in enumerate(num_data.columns):
+    ax = axs[i]
+    ax.hist(num_data[column], bins=35, color='skyblue', edgecolor='black')
+    ax.set_title(column)
+    ax.set_xlabel('Value')
+    ax.set_ylabel('Frequency')
+plt.tight_layout()
+plt.savefig("../output/distributions_of_variables.png")
+"""
+
+#Numercial features:
+#WE HAVE HUGE OUTLIERS THAT MEANS I WILL HAVE TO NORMALIZE IT WITH A METHOD ROBUST TO OUTLIERS
+#I will be using some sort of transformation for the data (BOX COX, LOG tranform etc.)
+#cannot work on data until nan is handled
+
+    
 
 """3: SPECIAL DATA FRAME (USEFUL FORMAT) CREATION:"""
 
