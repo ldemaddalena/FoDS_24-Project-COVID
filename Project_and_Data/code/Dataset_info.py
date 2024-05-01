@@ -371,7 +371,22 @@ plt.tight_layout()
 plt.savefig('../output/totcasescorr.png')
 
 
+#Plotting new deaths 
 
+daily_deaths = data.groupby('date')['new_deaths'].sum()
+daily_deaths_smoothed = data.groupby('date')['new_deaths_smoothed'].sum()
+
+fig, (ax1,ax2) = plt.subplots(2,1,figsize=(10,20))
+
+ax1.plot(daily_deaths, label='New Deaths Per Day')
+ax1.set(title='COVID-19 New Deaths Per Day', xlabel='Date', ylabel='Number of New Deaths')
+ax1.legend()
+
+ax2.plot(daily_deaths_smoothed, label='New Deaths Per Day, Smoothed Data')
+ax2.set(title='COVID-19 New Deaths Per Day', xlabel='Date', ylabel='Number of New Deaths')
+ax2.legend()
+
+plt.savefig("../output/new_deaths.png")
 
 #Trying to find out if there is a difference in deaths per million among the continents.
 
