@@ -248,8 +248,11 @@ data_all_time_per_iso = data_no_OWID.groupby("iso_code").agg({col: ['min', 'max'
 
 """4. VISUALIZATIONS:""" 
 
-#Trying to find out what country had the most cases and cases per million:
+"""
 
+Unten auch schon?
+
+#Trying to find out what country had the most cases and cases per million:
 tot_cases_per_country = data_all_time_per_iso["new_cases"]
 sorted_tot_cases_per_country = tot_cases_per_country.sort_values(ascending=False, by="sum").head(15)
 plt.figure(figsize=(12,8))
@@ -263,40 +266,37 @@ plt.figure(figsize=(12,8))
 fig2= sns.barplot(data=sorted_tot_cases_per_country_per_million, x="iso_code", y="sum")
 plt.title("total cases per country per million")
 plt.savefig("../output/tot_cases_per_country_per_million.png")
+"""
+
+
+################# CASES VISUALIZATION ####################
 
 
 
-
-
+# 1.1) Cases over time
 # Problem: Most countries did not publish covid numbers on the weekends
 # Effect: This leads to an oscillating graph for daily new cases
 # This can be solved with weekly new cases
 # either extract data from new_daily or use the smoothed cases count
 daily_cases = data.groupby('date')['new_cases'].sum()
-
 data_march= data[(data['date']>'2022-03-01')&(data['date']<'2022-04-01')]
 daily_cases_march = data_march.groupby('date')['new_cases'].sum()
 daily_cases_weekly= data.groupby(pd.Grouper(key='date', freq='W')).sum()['new_cases']
-# print(daily_cases_weekly)
-# print(daily_cases)
 
-# Plotting the new cases per day
+# Plotting
 fig, (ax1,ax2,ax3, ax4)=plt.subplots(4,1,figsize=(10,20))
-
 ax1.plot(daily_cases, label='New Cases Per Day')
 ax1.set(title='COVID-19 New Cases Per Day',
         xlabel='Date',
         ylabel='Number of New Cases'
         )
 ax1.legend()
-
 ax2.plot(daily_cases_march, label='New Cases Per Day, March 2022')
 ax2.set(title='COVID-19 New Cases Per Day',
         xlabel='Date',
         ylabel='Number of New Cases'
         )
 ax2.legend()
-
 ax3.plot(daily_cases_weekly, label='New Cases Per Day, Daily turned to weekly')
 ax3.set(title='COVID-19 New Cases Per Day',
         xlabel='Date',
@@ -304,18 +304,71 @@ ax3.set(title='COVID-19 New Cases Per Day',
         )
 
 ax3.legend()
-
-ax4.plot(data.groupby('date')['new_cases_smoothed'].sum(), label='New Cases Per Day, Using the smoothed count')
+ax4.plot(data.groupby('date')['new_cases_smoothed'].sum(), label='New Cases Per Day, Daily turned to weekly')
 ax4.set(title='COVID-19 New Cases Per Day',
         xlabel='Date',
         ylabel='Number of New Cases'
         )
 
 ax4.legend()
-
 plt.subplots_adjust(hspace=0.5)
+plt.savefig('../output/newcasestotal.png')
 
-plt.savefig("../output/cases_trend.png")
+# 1.2) Cases over time by continent
+grouped_data = data[~(data['continent']==0)].groupby(['date', 'continent'])['new_cases_smoothed'].sum().reset_index()
+plt.figure(figsize=(12, 8))
+sns.lineplot(x='date', y='new_cases_smoothed', hue='continent', data=grouped_data)
+plt.title('New COVID-19 Cases by Continent Over Time')
+plt.xlabel('Date')
+plt.ylabel('Number of New Cases')
+plt.legend(title='Continent')
+plt.grid(True)  
+plt.savefig('../output/newcasesbycontinent')
+
+data.fillna(0, inplace=True)
+
+#2.1) Total Cases vs Total Cases per Million by Continent
+cases=['total_cases','total_cases_per_million']
+fig, axs= plt.subplots(2,1,figsize=(10,10))
+data_nozero=data[~(data['continent']==0)]
+for i, variable in enumerate(cases):
+        top_countries = data_nozero.groupby('continent')[variable].max().nlargest(10)
+        print(top_countries)
+        top_countries.plot(kind='bar', ax=axs[i],grid=True)
+        axs[i].set_xlabel('Continent')
+        axs[i].set_ylabel(variable)
+plt.suptitle('Total Cases vs Total Cases per Million')
+plt.subplots_adjust(hspace=0.5)
+plt.savefig('../output/casesbycontinent.png')
+
+#2.2) Total Cases vs Total Cases per Million by Country
+cases=['total_cases','total_cases_per_million']
+fig, axs= plt.subplots(2,1,figsize=(10,10))
+data_noowid=data[~data['iso_code'].str.startswith("OWID_")]
+for i, variable in enumerate(cases):
+        top_countries = data_noowid.groupby('iso_code')[variable].max().nlargest(10)
+        print(top_countries)
+        top_countries.plot(kind='bar', ax=axs[i],grid=True)
+        axs[i].set_xlabel('Country')
+        axs[i].set_ylabel(variable)
+plt.suptitle('Total Cases vs Total Cases per Million')
+plt.subplots_adjust(hspace=0.5)
+plt.savefig('../output/casesbycountry.png')
+
+# 3) Scatter Plots with variables of interest
+variables_of_interest = [
+    'icu_patients_per_million', 'total_tests_per_thousand', 'total_vaccinations_per_hundred',
+    'stringency_index', 'hospital_beds_per_thousand', 'aged_65_older'
+]
+fig, axs = plt.subplots(3, 2, figsize=(15, 15))
+axs = axs.flatten()
+for i, variable in enumerate(variables_of_interest):
+    sns.scatterplot(x=variable, y='total_cases_per_million', data=data, ax=axs[i], markers='.')
+    axs[i].set_title(f'Total Cases per Million vs. {variable}')
+    axs[i].set_xlabel(variable)
+    axs[i].set_ylabel('Total Cases per Million')
+plt.tight_layout()
+plt.savefig('../output/totcasescorr.png')
 
 
 
