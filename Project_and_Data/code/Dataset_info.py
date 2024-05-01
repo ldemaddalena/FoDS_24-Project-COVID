@@ -316,3 +316,71 @@ ax4.legend()
 plt.subplots_adjust(hspace=0.5)
 
 plt.savefig("../output/cases_trend.png")
+
+
+
+
+#Trying to find out if there is a difference in deaths per million among the continents.
+
+new_deaths_per_million_continent = data.groupby(['date', 'continent'])['new_deaths_per_million'].sum().reset_index()
+new_deaths_per_million_continent_smoothed = data.groupby(['date', 'continent'])['new_deaths_smoothed_per_million'].sum().reset_index()
+total_cases_per_continent = data.groupby(['date', 'continent'])['total_cases_per_million'].sum().reset_index()
+#print(new_deaths_per_million_continent)
+#print(new_deaths_per_million_continent_smoothed)
+
+continents_deaths = new_deaths_per_million_continent['continent'].unique()
+
+#Creating suplots per Continent with the real counts
+fig, axes = plt.subplots(len(continents_deaths), 1, figsize=(10, 6*len(continents_deaths)), sharex=True)
+
+# Iterate over each continent and create a subplot
+for i, continent in enumerate(continents_deaths):
+    continent_data = new_deaths_per_million_continent[new_deaths_per_million_continent['continent'] == continent]
+    sns.lineplot(data=continent_data, x='date', y='new_deaths_per_million', ax=axes[i])
+    axes[i].set_title(f'New Deaths per Million in {continent} Over Time')
+    axes[i].set_ylabel('New Deaths per Million')
+    axes[i].set_xlabel('Date')
+    axes[i].grid(True)
+    
+plt.tight_layout()
+
+plt.savefig("../output/NewDeathsPerMillion_Subplots.png")
+
+
+
+#Using the smoothed count
+fig, axes = plt.subplots(len(continents_deaths), 1, figsize=(10, 6*len(continents_deaths)), sharex=True)
+
+for i, continent in enumerate(continents_deaths):
+    continent_data = new_deaths_per_million_continent_smoothed[new_deaths_per_million_continent_smoothed['continent'] == continent]
+    sns.lineplot(data=continent_data, x='date', y='new_deaths_smoothed_per_million', ax=axes[i])
+    axes[i].set_title(f'New Deaths per Million in {continent} Over Time')
+    axes[i].set_ylabel('New Deaths per Million')
+    axes[i].set_xlabel('Date')
+    axes[i].grid(True)
+    
+plt.tight_layout()
+
+plt.savefig("../output/NewDeathsPerMillionSmoothed_Subplots.png")
+
+
+#Trying to make a statement about the severity by analyzing the new deaths per million divided by the total cases
+#Problem: The Total cases count is constantly increasing, no statement about current state possible... can we use the new cases?
+# Merge the new deaths and total cases. Calculate new deaths per million divided by total cases per million
+death_cases_merge = pd.merge(new_deaths_per_million_continent_smoothed, total_cases_per_continent, on=['date', 'continent'])
+death_cases_merge['deaths_to_cases_ratio'] = death_cases_merge['new_deaths_smoothed_per_million'] / death_cases_merge['total_cases_per_million']
+
+
+fig, axes = plt.subplots(len(continents_deaths), 1, figsize=(10, 6*len(continents_deaths)), sharex=True)
+
+for i, continent in enumerate(continents_deaths):
+    continent_data = death_cases_merge[death_cases_merge['continent'] == continent]
+    sns.lineplot(data=continent_data, x='date', y='deaths_to_cases_ratio', ax=axes[i])
+    axes[i].set_title(f'New Deaths per Million divided by Total Cases per Million in {continent} Over Time')
+    axes[i].set_ylabel('New Deaths per Million / Total Cases per Million')
+    axes[i].set_xlabel('Date')
+    axes[i].grid(True)
+    
+plt.tight_layout()
+
+plt.savefig("../output/NewDeathsToCasesRatio_Subplots.png")
