@@ -365,7 +365,6 @@ plt.savefig("../output/NewDeathsPerMillionSmoothed_Subplots.png")
 
 
 #Trying to make a statement about the severity by analyzing the new deaths per million divided by the total cases
-#Problem: The Total cases count is constantly increasing, no statement about current state possible... can we use the new cases?
 # Merge the new deaths and total cases. Calculate new deaths per million divided by total cases per million
 death_cases_merge = pd.merge(new_deaths_per_million_continent_smoothed, total_cases_per_continent, on=['date', 'continent'])
 death_cases_merge['deaths_to_cases_ratio'] = death_cases_merge['new_deaths_smoothed_per_million'] / death_cases_merge['total_cases_per_million']
