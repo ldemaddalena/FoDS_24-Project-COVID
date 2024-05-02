@@ -314,7 +314,7 @@ ax4.legend()
 plt.subplots_adjust(hspace=0.5)
 plt.savefig('../output/newcasestotal.png')
 
-# 1.2) Cases over time by continent
+# 1.2) Cases over time by continent compact
 grouped_data = data[~(data['continent']==0)].groupby(['date', 'continent'])['new_cases_smoothed'].sum().reset_index()
 plt.figure(figsize=(12, 8))
 sns.lineplot(x='date', y='new_cases_smoothed', hue='continent', data=grouped_data)
@@ -324,6 +324,21 @@ plt.ylabel('Number of New Cases')
 plt.legend(title='Continent')
 plt.grid(True)  
 plt.savefig('../output/newcasesbycontinent')
+
+#Cases over time by continent in subplots
+
+grouped_data = data[~(data['continent']==0)].groupby(['continent','date'])['new_cases_smoothed'].sum().reset_index()
+continents_of_interest=['North America','South America','Asia','Europe','Oceania','Africa']
+fig, axs = plt.subplots(1,6,figsize=(24,8), sharey=True)
+for i,continent in enumerate(continents_of_interest):
+        sns.lineplot(x='date', y='new_cases_smoothed',  data=grouped_data[grouped_data['continent']==continent],ax=axs[i])
+        axs[i].set_xlabel('Date')
+        axs[i].set_ylabel('New Cases')
+        axs[i].set_title(continent)
+        axs[i].tick_params(axis='x', rotation=90)
+        axs[i].grid(True)
+plt.suptitle('New Cases by Continent')
+plt.savefig('../output/casesbycontinentsp')
 
 data.fillna(0, inplace=True)
 
