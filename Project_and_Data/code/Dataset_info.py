@@ -33,13 +33,11 @@ data = pd.read_csv("../data/OWID-covid-data-28Feb2023.csv")
 """1. GETTING AN OVERVIEW:"""
 
 
-# print(data.info())
-# print(data.describe())
-# print(data.head())
-
-
-#Total number of data entries
-# print("Number of observations:", data.shape[0])
+print(data.info())
+print(data.describe())
+print(data.head())
+#Total number of data entries:
+print("Number of observations:", data.shape[0])
 # Geographic and temporal data: ISO code, continent, location, and date.
 # Case and death counts: Total and new cases/deaths, both raw and per million people.
 # Hospitalization data: ICU and hospitalization counts, also provided per million.
@@ -63,15 +61,15 @@ loc_in_con = data.groupby("continent")["location"].apply(list)
 
 
 #Datatypes of each variable:
-# print(data.dtypes)
+print(data.dtypes)
 #Taking a closer look at data types:
 int_data = data.select_dtypes(include=("int64")).columns
-# print("INTEGERS: ", int_data)
+print("INTEGERS: ", int_data)
 #We dont have any integers? -> We do but they are just not saved as such.
 float_data = data.select_dtypes(include=("float64")).columns
-# print("FLOATS: ", float_data)
+print("FLOATS: ", float_data)
 object_data = data.select_dtypes(include=("object")).columns
-# print("OBJECTS:", object_data)
+print("OBJECTS:", object_data)
 num_data = data[float_data] 
 
 
